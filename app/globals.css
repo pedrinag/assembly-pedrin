@@ -1,0 +1,68 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #0a0a0a; color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+h1 { font-size: 28px; margin: 0 0 8px; }
+.sub { color: #888; margin-bottom: 32px; }
+
+.dropzone {
+  border: 2px dashed #333;
+  border-radius: 12px;
+  padding: 48px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .15s;
+  background: #111;
+}
+.dropzone:hover, .dropzone.drag { border-color: #4f8cff; background: #141a24; }
+.dropzone input { display: none; }
+.dropzone p { margin: 8px 0 0; color: #888; font-size: 14px; }
+
+.list { margin-top: 32px; display: flex; flex-direction: column; gap: 12px; }
+.job {
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.job-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.job-name { font-weight: 500; word-break: break-all; flex: 1; }
+.status {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status.waiting { background: #2a2a2a; color: #999; }
+.status.extracting, .status.uploading, .status.queued, .status.processing { background: #1e3a5f; color: #6db3ff; }
+.status.completed { background: #14432a; color: #4ade80; }
+.status.error { background: #4a1c1c; color: #f87171; }
+
+.progress { height: 4px; background: #222; border-radius: 2px; overflow: hidden; }
+.progress > div { height: 100%; background: #4f8cff; transition: width .2s; }
+
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+button {
+  background: #4f8cff; color: white; border: none; border-radius: 8px;
+  padding: 8px 16px; font-size: 14px; font-weight: 500; cursor: pointer;
+}
+button:hover:not(:disabled) { background: #3d7aef; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button.ghost { background: transparent; border: 1px solid #333; color: #ccc; }
+button.ghost:hover:not(:disabled) { background: #1a1a1a; border-color: #4f8cff; }
+
+.bulk { margin-top: 16px; display: flex; gap: 8px; }
+
+.error-msg { color: #f87171; font-size: 13px; }
+
+input[type="password"] {
+  background: #111; border: 1px solid #333; color: white;
+  padding: 10px 14px; border-radius: 8px; font-size: 14px;
+  width: 100%; max-width: 320px;
+}
+.gate { display: flex; flex-direction: column; gap: 12px; padding: 24px; background: #111; border-radius: 12px; max-width: 380px; }
