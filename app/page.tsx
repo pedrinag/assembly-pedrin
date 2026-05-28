@@ -6,6 +6,8 @@ import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 type JobStatus = "waiting" | "extracting" | "uploading" | "queued" | "processing" | "completed" | "error";
 
+type LangMode = "pt" | "auto";
+
 interface Job {
   id: string;
   name: string;
@@ -17,6 +19,8 @@ interface Job {
   error?: string;
   uploadProgress?: number;
   extractProgress?: number;
+  langMode?: LangMode;
+  detectedLanguage?: string;
 }
 
 let ffmpegInstance: FFmpeg | null = null;
@@ -96,6 +100,7 @@ export default function Page() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const [langMode, setLangMode] = useState<LangMode>("pt");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -156,7 +161,7 @@ export default function Page() {
           const d = await r.json();
           if (d.status === "completed") {
             const text = formatTranscript(d);
-            updateJob(job.id, { status: "completed", text });
+            updateJob(job.id, { status: "completed", text, detectedLanguage: d.language_code });
           } else if (d.status === "error") {
             updateJob(job.id, { status: "error", error: d.error || "Erro na transcrição" });
           } else if (d.status === "processing") {
@@ -182,13 +187,14 @@ export default function Page() {
         id, name: file.name, size: file.size, createdAt: Date.now(),
         status: isVideo ? "waiting" : "uploading",
         uploadProgress: 0, extractProgress: 0,
+        langMode,
       };
       setJobs(prev => [job, ...prev]);
-      uploadAndTranscribe(file, id, apiKey, isVideo);
+      uploadAndTranscribe(file, id, apiKey, isVideo, langMode);
     }
   };
 
-  const uploadAndTranscribe = async (file: File, id: string, key: string, isVideo: boolean) => {
+  const uploadAndTranscribe = async (file: File, id: string, key: string, isVideo: boolean, mode: LangMode) => {
     try {
       let toUpload: Blob = file;
       if (isVideo) {
@@ -200,15 +206,20 @@ export default function Page() {
       const uploadUrl = await uploadWithProgress(toUpload, key, (pct) => {
         updateJob(id, { uploadProgress: pct });
       });
+      const payload: any = {
+        audio_url: uploadUrl,
+        speech_model: "universal",
+        speaker_labels: true,
+      };
+      if (mode === "pt") {
+        payload.language_code = "pt";
+      } else {
+        payload.language_detection = true;
+      }
       const r = await fetch("https://api.assemblyai.com/v2/transcript", {
         method: "POST",
         headers: { authorization: key, "content-type": "application/json" },
-        body: JSON.stringify({
-          audio_url: uploadUrl,
-          language_code: "pt",
-          speech_model: "universal",
-          speaker_labels: true,
-        }),
+        body: JSON.stringify(payload),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Erro ao criar transcrição");
@@ -309,6 +320,18 @@ export default function Page() {
       <h1>Transcritor de Vídeos</h1>
       <p className="sub">Arraste vídeos ou clique para selecionar. Transcrição automática via AssemblyAI.</p>
 
+      <div className="lang-picker">
+        <span className="lang-label">Idioma da transcrição:</span>
+        <label className={`lang-opt ${langMode === "pt" ? "active" : ""}`}>
+          <input type="radio" name="lang" checked={langMode === "pt"} onChange={() => setLangMode("pt")} />
+          Português (Brasil)
+        </label>
+        <label className={`lang-opt ${langMode === "auto" ? "active" : ""}`}>
+          <input type="radio" name="lang" checked={langMode === "auto"} onChange={() => setLangMode("auto")} />
+          Detectar idioma do vídeo (sem traduzir)
+        </label>
+      </div>
+
       <div
         className={`dropzone ${dragOver ? "drag" : ""}`}
         onClick={() => fileInputRef.current?.click()}
@@ -344,7 +367,12 @@ export default function Page() {
         {jobs.map(job => (
           <div key={job.id} className="job">
             <div className="job-header">
-              <div className="job-name">{job.name}</div>
+              <div className="job-name">
+                {job.name}
+                {job.detectedLanguage && (
+                  <span className="lang-tag">{job.detectedLanguage.toUpperCase()}</span>
+                )}
+              </div>
               <span className={`status ${job.status}`}>
                 {job.status === "waiting" && "Aguardando vez"}
                 {job.status === "extracting" && `Extraindo áudio ${job.extractProgress ?? 0}%`}
